@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授業用 アナログ時計ツール</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (M PLUS Rounded 1c for child-friendly font) -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        /* Canvas smooth rendering */
+        canvas {
+            touch-action: none;
+        }
+
+        /* Custom toggle animation */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #3B82F6;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #3B82F6;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden text-slate-800 relative">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white shadow-md py-3 px-4 sm:px-6 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 text-white p-2 rounded-xl">
+                <i class="fa-solid fa-clock text-xl"></i>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-800 tracking-wide">きょうしつの時計</h1>
+        </div>
+        
+        <!-- Quick Control Buttons -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <button id="fullscreenBtn" class="flex items-center space-x-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-3 sm:px-4 rounded-xl shadow transition transform active:scale-95 text-sm sm:text-base">
+                <i class="fa-solid fa-expand"></i>
+                <span>ぜんめん</span>
+            </button>
+            <button id="settingsModalBtn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2.5 rounded-xl transition transform active:scale-95">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 max-w-5xl mx-auto w-full">
+        
+        <!-- Analog Clock Display Section -->
+        <section class="flex-1 flex flex-col items-center justify-center w-full h-full relative">
+            <div class="relative w-full max-w-[620px] aspect-square flex items-center justify-center p-2">
+                <!-- Clock Canvas -->
+                <canvas id="clockCanvas" class="w-full h-full drop-shadow-xl"></canvas>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Info -->
+    <footer class="py-2 text-center text-xs text-slate-400">
+        小学校 授業用アナログ時計ツール
+    </footer>
+
+    <!-- Modal: Settings -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5 transform transition-all">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-blue-600"></i> 時計の表示設定
+                </h3>
+                <button id="closeSettingsBtn" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-sm font-medium text-slate-700">
+                <!-- Setting 1: Minute Numbers -->
+                <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50">
+                    <div>
+                        <div class="font-bold text-slate-800">「分」の数字を表示 (5,10,15...)</div>
+                        <div class="text-xs text-slate-400">時計の外側に「分」のガイドを表示します</div>
+                    </div>
+                    <input type="checkbox" id="showMinuteNumbersCheck" class="w-5 h-5 accent-blue-600 rounded cursor-pointer" checked>
+                </div>
+
+                <!-- Setting 2: Second Hand -->
+                <div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50">
+                    <div>
+                        <div class="font-bold text-slate-800">秒針を表示</div>
+                        <div class="text-xs text-slate-400">赤色の秒針を表示します</div>
+                    </div>
+                    <input type="checkbox" id="showSecondsCheck" class="w-5 h-5 accent-blue-600 rounded cursor-pointer" checked>
+                </div>
+
+                <!-- Setting 3: Numbers style -->
+                <div class="p-2 rounded-xl hover:bg-slate-50">
+                    <label class="block font-bold text-slate-800 mb-1">文字盤の数字の種類</label>
+                    <select id="numberStyleSelect" class="w-full bg-slate-100 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">すべての数字 (1〜12)</option>
+                        <option value="main">主要な数字のみ (3, 6, 9, 12)</option>
+                        <option value="none">数字なし (目盛りのみ)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="saveSettingsBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow transition">
+                とじる
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Clock Configuration Options
+        const config = {
+            showMinuteNumbers: true,
+            showSeconds: true,
+            numberStyle: 'all' // 'all', 'main', 'none'
+        };
+
+        // Canvas & Context Setup
+        const canvas = document.getElementById('clockCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Modals & Buttons
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsModalBtn = document.getElementById('settingsModalBtn');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // Controls
+        const showMinuteNumbersCheck = document.getElementById('showMinuteNumbersCheck');
+        const showSecondsCheck = document.getElementById('showSecondsCheck');
+        const numberStyleSelect = document.getElementById('numberStyleSelect');
+
+        // Resize Canvas to fit DPI and Responsive Container
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+
+        // Render Analog Clock
+        function drawClock(now) {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(centerX, centerY) * 0.82;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Outer Frame Box-Shadow / Border Effect
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = radius * 0.05;
+            ctx.strokeStyle = '#1e293b'; // Slate 800
+            ctx.stroke();
+
+            // Ticks (Hour and Minute Marks)
+            for (let i = 0; i < 60; i++) {
+                const angle = (i * 6) * (Math.PI / 180);
+                const isHourMark = i % 5 === 0;
+                
+                const tickLength = isHourMark ? radius * 0.12 : radius * 0.05;
+                const tickWidth = isHourMark ? 4 : 1.5;
+                const innerR = radius - tickLength;
+                const outerR = radius - (radius * 0.02);
+
+                const x1 = centerX + innerR * Math.sin(angle);
+                const y1 = centerY - innerR * Math.cos(angle);
+                const x2 = centerX + outerR * Math.sin(angle);
+                const y2 = centerY - outerR * Math.cos(angle);
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.lineWidth = tickWidth;
+                ctx.strokeStyle = isHourMark ? '#0f172a' : '#94a3b8';
+                ctx.stroke();
+            }
+
+            // Minute Guide Numbers (Outer: 5, 10, 15...)
+            if (config.showMinuteNumbers) {
+                ctx.font = `700 ${radius * 0.085}px 'M PLUS Rounded 1c', sans-serif`;
+                ctx.fillStyle = '#2563eb'; // Blue 600
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                for (let i = 5; i <= 60; i += 5) {
+                    const angle = (i * 6) * (Math.PI / 180);
+                    const numR = radius * 1.12; // Draw outside the clock face
+                    const x = centerX + numR * Math.sin(angle);
+                    const y = centerY - numR * Math.cos(angle);
+                    const displayNum = i === 60 ? '0' : i;
+                    ctx.fillText(displayNum.toString(), x, y);
+                }
+            }
+
+            // Hour Numbers (1 to 12)
+            if (config.numberStyle !== 'none') {
+                ctx.font = `800 ${radius * 0.22}px 'M PLUS Rounded 1c', sans-serif`;
+                ctx.fillStyle = '#0f172a'; // Dark Slate
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                for (let num = 1; num <= 12; num++) {
+                    if (config.numberStyle === 'main' && num % 3 !== 0) continue;
+
+                    const angle = (num * 30) * (Math.PI / 180);
+                    const numR = radius * 0.73;
+                    const x = centerX + numR * Math.sin(angle);
+                    const y = centerY - numR * Math.cos(angle);
+                    ctx.fillText(num.toString(), x, y);
+                }
+            }
+
+            // Calculations for hands angles
+            const hours = now.getHours() % 12;
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            const hourAngle = ((hours + minutes / 60 + seconds / 3600) * 30) * (Math.PI / 180);
+            const minuteAngle = ((minutes + seconds / 60) * 6) * (Math.PI / 180);
+            const secondAngle = (seconds * 6) * (Math.PI / 180);
+
+            // Draw Hour Hand
+            drawHand(centerX, centerY, hourAngle, radius * 0.52, radius * 0.07, '#1e293b');
+
+            // Draw Minute Hand
+            drawHand(centerX, centerY, minuteAngle, radius * 0.78, radius * 0.045, '#2563eb');
+
+            // Draw Second Hand (if enabled)
+            if (config.showSeconds) {
+                drawHand(centerX, centerY, secondAngle, radius * 0.85, radius * 0.02, '#dc2626', radius * 0.2);
+                
+                // Red center cap
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 0.04, 0, 2 * Math.PI);
+                ctx.fillStyle = '#dc2626';
+                ctx.fill();
+            }
+
+            // Center Pin
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.025, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#0f172a';
+            ctx.stroke();
+        }
+
+        // Helper to Draw Clock Hands
+        function drawHand(cx, cy, angle, length, width, color, tailLength = 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle);
+            ctx.lineCap = 'round';
+            ctx.lineWidth = width;
+            ctx.strokeStyle = color;
+
+            ctx.moveTo(0, tailLength);
+            ctx.lineTo(0, -length);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Main Animation Loop
+        function tick() {
+            const now = new Date();
+            drawClock(now);
+            requestAnimationFrame(tick);
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+
+        // Settings Modal Handlers
+        settingsModalBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+        closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        saveSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+        showMinuteNumbersCheck.addEventListener('change', (e) => config.showMinuteNumbers = e.target.checked);
+        showSecondsCheck.addEventListener('change', (e) => config.showSeconds = e.target.checked);
+        numberStyleSelect.addEventListener('change', (e) => config.numberStyle = e.value);
+
+        // Fullscreen Toggle
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Initialization
+        window.onload = function() {
+            resizeCanvas();
+            requestAnimationFrame(tick);
+        };
+    </script>
+</body>
+</html>
